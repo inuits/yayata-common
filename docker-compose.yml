@@ -2,18 +2,26 @@ version: '3'
 services:
   ldap:
     image: osixia/openldap:1.1.7
-  # minio:
-  #   container_name: minio
-  #   image: minio/minio:RELEASE.2023-08-31T15-31-16Z
-  #   environment:
-  #     - MINIO_ROOT_USER=admin
-  #     - MINIO_ROOT_PASSWORD=MinioPassword
-  #     - MINIO_VOLUMES=/mnt/data
-  #   volumes:
-  #     - minio:/mnt/data
-  #   ports:
-  #     - "9000:9000"
-  #     - "9090:9090"
+  minio:
+    hostname: minio
+    container_name: minio
+    image: minio/minio:RELEASE.2023-08-31T15-31-16Z
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=MinioPassword
+      - MINIO_VOLUMES=/mnt/data
+    volumes:
+      - minio:/mnt/data
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+    command:
+      [
+        "minio",
+        "server",
+        "--console-address",
+        ":9090"
+      ]
   mysql:
     container_name: mysql
     image: mysql:8.1
@@ -54,6 +62,7 @@ services:
     depends_on:
       - ldap
       - mysql
+      - minio
 
   yayata:
     container_name: yayata
@@ -74,5 +83,5 @@ services:
       - 925r
 
 volumes:
-  # minio:
+  minio:
   mysql:
