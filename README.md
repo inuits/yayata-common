@@ -6,6 +6,16 @@ Run script to clone required repositories.
 ```shell
 ./init-script.sh
 ```
+
+Run minio and create an access key and a secret key (default in `dev` config is `minio` and `minio-client`)
+```sh
+docker compose up minio -d
+```
+
+http://127.0.0.1:9090/access-keys/new-account
+
+For production, pass the Access Key and Secret Key to 925r settings (`MINIO_ACCESS_KEY` and `MINIO_SECRET_KEY` variables)
+
 Run docker-compose command to start 925r and YaYata.
 This step will perform also apply of 925r migrations.
 ```shell
