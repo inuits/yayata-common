@@ -4,9 +4,9 @@ Repository for locally bootstrapping 925r and Yayata.
 
 ## Dependencies
 
-- [Git](https://git-scm.com/)
-- [Taskfile](https://taskfile.dev/)
-- [Docker with Compose v2](https://docs.docker.com/compose/)
+- [Git](https://git-scm.com/) - [Installation](https://git-scm.com/download/linux)
+- [Taskfile](https://taskfile.dev/) - [Installation](https://taskfile.dev/installation/#install-script)
+- [Docker with Compose v2](https://docs.docker.com/compose/) - [Installation](https://docs.docker.com/compose/install/linux/)
 
 ## Installation
 
@@ -16,7 +16,7 @@ Create a new directory for all [925r](https://github.com/inuits/925r) and [Yayat
 mkdir -p ~/inuits/yayata-application
 ```
 
-Step inside that newly created directory.
+Step inside the newly created directory.
 
 ```
 cd ~/inuits/yayata-application
@@ -26,10 +26,9 @@ Clone this repository from [GitHub](https://github.com/inuits/yayata-common):
 
 ```
 git clone --branch feature/metalarend/local-setup --single-branch https://github.com/inuits/yayata-common.git
-cd yayata-common
 ```
 
-Step inside that newly pulled directory.
+Step inside the newly pulled directory.
 
 ```
 cd yayata-common
@@ -51,7 +50,7 @@ task pull
 
 ## Usage
 
-Use GoTask to start both 925r and Yayata:
+Start both 925r and Yayata:
 
 ```
 task start
@@ -61,6 +60,6 @@ Open your browser on [http://localhost:8000](http://localhost:8000) for the 925r
 
 Open your browser on [http://localhost:8080](http://localhost:8080) for the Yayata application.
 
-The credentials for Yayata can be found in the Yayata .env file.
+The credentials for Yayata can be found in the 925r .env file.
 
-For more details, check the Yayata or 925r README.md files.
+For more details, check the 925r and Yayata README.md files.
