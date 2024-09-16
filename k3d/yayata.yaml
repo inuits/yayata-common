@@ -1,0 +1,93 @@
+#---
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: yayata
+#  labels:
+#    app: yayata
+#spec:
+#  accessModes:
+#    - ReadWriteOnce
+#  storageClassName: local-path
+#  resources:
+#    requests:
+#      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yayata
+  labels:
+    app: yayata
+spec:
+  selector:
+    matchLabels:
+      app: yayata
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: yayata
+    spec:
+      containers:
+        - name: yayata
+          image: k3d-registry.localhost:5050/yayata:latest
+          args:
+            - sh
+            - -c
+            - |2
+                npm install
+                echo "{\"oauth2\":{\"config\":{\"baseUrl\":\"${API_APPLICATION_BASE_URL?}\",\"clientId\":\"${API_APPLICATION_CLIENT_ID?}\"}}}" > /code/src/static/cfg/config.json
+                npm run dev -- --host 0.0.0.0
+          env:
+            - name: API_APPLICATION_BASE_URL
+              value: ninetofiver.localhost
+            - name: API_APPLICATION_CLIENT_ID
+              value: yayata
+#          volumeMounts:
+#            - mountPath: /code
+#              name: yayata-files
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+      restartPolicy: Always
+#      volumes:
+#        - name: yayata-files
+#          persistentVolumeClaim:
+#            claimName: yayata
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: yayata
+  labels:
+    app: yayata
+spec:
+  selector:
+    app: yayata
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: yayata
+  labels:
+    app: yayata
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+    - host: yayata.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: yayata
+                port:
+                  number: 8080

@@ -1,5 +1,11 @@
 version: '3'
 
+env:
+  DOCKER: "docker"
+  COMPOSE: "{{.DOCKER}} compose"
+  K3D: "k3d"
+  KUBECTL: "kubectl"
+
 dotenv: ['.env.local', '.env', '.env.dist'] # first file takes precedence
 
 includes:
@@ -73,3 +79,303 @@ tasks:
     cmds:
       - task: remove
       - if test -f .env; then mv .env .env.bck; fi
+
+### WIP K3D setup for 925r and YaYata
+# - add clone as deps
+
+  k3d:registry:create:
+    run: once
+    preconditions:
+      - sh: "test '{{.REGISTRY_HOST}}' != '' "
+        msg: "Registry host was not provided"
+      - sh: "test '{{.REGISTRY_PORT}}' != '' "
+        msg: "Registry port was not provided"
+    cmds:
+      - |
+        {{.K3D}} registry create "{{.REGISTRY_HOST}}" --port "{{.REGISTRY_PORT}}"
+
+  k3d:registry:assure-created:
+    run: once
+    preconditions:
+      - sh: "test '{{.REGISTRY_HOST}}' != '' "
+        msg: "Registry host was not provided"
+    status:
+      - |
+        {{.K3D}} registry list --no-headers "{{.REGISTRY_HOST}}" 2>/dev/null | grep -q "{{.REGISTRY_HOST}}"
+    cmds:
+      - task: "k3d:registry:create"
+
+  k3d:registry:delete:
+    run: once
+    preconditions:
+      - sh: "test '{{.REGISTRY_HOST}}' != '' "
+        msg: "Registry host was not provided"
+    cmds:
+      - |
+        {{.K3D}} registry delete "k3d-{{.REGISTRY_HOST}}"
+
+  k3d:registry:assure-deleted:
+    run: once
+    preconditions:
+      - sh: "test '{{.REGISTRY_HOST}}' != '' "
+        msg: "Registry host was not provided"
+    status:
+      - |
+        {{.K3D}} registry list --no-headers "{{.REGISTRY_HOST}}" 2>/dev/null | ( ! grep -q "{{.REGISTRY_HOST}}" )
+    cmds:
+      - task: "k3d:registry:delete"
+
+  k3d:cluster:create:
+    run: once
+    preconditions:
+      - sh: "test '{{.REGISTRY_HOST}}' != '' "
+        msg: "Registry host was not provided"
+      - sh: "test '{{.REGISTRY_PORT}}' != '' "
+        msg: "Registry port was not provided"
+      - sh: "test '{{.CLUSTER_NAME}}' != '' "
+        msg: "Cluster name was not provided"
+    deps:
+      - task: "k3d:registry:assure-created"
+    cmds:
+      - |
+        {{.K3D}} cluster create "{{.CLUSTER_NAME}}" --servers "{{.CLUSTER_SERVERS}}" --agents "{{.CLUSTER_AGENTS}}" --registry-use "k3d-{{.REGISTRY_HOST}}:{{.REGISTRY_PORT}}" --port "{{.CLUSTER_EXPOSED_PORT}}:80@loadbalancer"
+
+  k3d:cluster:assure-created:
+    run: once
+    preconditions:
+      - sh: "test '{{.CLUSTER_NAME}}' != '' "
+        msg: "Cluster name was not provided"
+    status:
+      - |
+        {{.K3D}} cluster list --no-headers "{{.CLUSTER_NAME}}" 2>/dev/null | grep -q "{{.CLUSTER_NAME}}"
+    cmds:
+      - task: "k3d:cluster:create"
+
+  k3d:cluster:assure-started:
+    run: once
+    preconditions:
+      - sh: "test '{{.CLUSTER_NAME}}' != '' "
+        msg: "Cluster name was not provided"
+    cmds:
+      - task: "k3d:cluster:assure-created"
+      - |
+        {{.K3D}} cluster start "{{.CLUSTER_NAME}}"
+
+  k3d:cluster:delete:
+    run: once
+    preconditions:
+      - sh: "test '{{.CLUSTER_NAME}}' != '' "
+        msg: "Cluster name was not provided"
+    cmds:
+      - |
+        {{.K3D}} cluster delete "{{.CLUSTER_NAME}}"
+
+  k3d:cluster:assure-deleted:
+    run: once
+    preconditions:
+      - sh: "test '{{.CLUSTER_NAME}}' != '' "
+        msg: "Cluster name was not provided"
+    status:
+      - |
+        {{.K3D}} cluster list --no-headers "{{.CLUSTER_NAME}}" 2>/dev/null | ( ! grep -q "{{.CLUSTER_NAME}}" )
+    cmds:
+      - task: "k3d:cluster:delete"
+
+  k3d:cluster:switch:
+    run: once
+    preconditions:
+      - sh: "test '{{.CLUSTER_NAME}}' != '' "
+        msg: "Cluster name was not provided"
+    deps:
+      - task: "k3d:cluster:assure-started"
+    cmds:
+      - |
+        {{.K3D}} kubeconfig merge "{{.CLUSTER_NAME}}" --kubeconfig-switch-context
+
+  kubectl:namespace:create:
+    run: once
+    preconditions:
+      - sh: "test '{{.NAMESPACE_NAME}}' != '' "
+        msg: "Namespace name was not provided"
+    cmds:
+      - |
+        {{.KUBECTL}} create namespace "{{.NAMESPACE_NAME}}"
+
+  kubectl:namespace:assure-created:
+    run: once
+    preconditions:
+      - sh: "test '{{.NAMESPACE_NAME}}' != '' "
+        msg: "Namespace name was not provided"
+    status:
+      - |
+        {{.KUBECTL}} get namespace "{{.NAMESPACE_NAME}}" 2>/dev/null | grep -q "{{.NAMESPACE_NAME}}"
+    cmds:
+      - task: "kubectl:namespace:create"
+
+  kubectl:namespace:delete:
+    run: once
+    preconditions:
+      - sh: "test '{{.NAMESPACE_NAME}}' != '' "
+        msg: "Namespace name was not provided"
+    cmds:
+      - if test "{{.NAMESPACE_NAME}}" != "default"; then
+          {{.KUBECTL}} delete namespace "{{.NAMESPACE_NAME}}";
+        fi
+
+  kubectl:namespace:assure-deleted:
+    run: once
+    preconditions:
+      - sh: "test '{{.NAMESPACE_NAME}}' != '' "
+        msg: "Namespace name was not provided"
+    status:
+      - |
+        {{.KUBECTL}} get namespace "{{.NAMESPACE_NAME}}" 2>/dev/null | ( ! grep -q "{{.NAMESPACE_NAME}}" )
+    cmds:
+      - task: "kubectl:namespace:delete"
+
+  compose:image:ninetofiver:assure-built-and-pushed-to-k3d:
+    run: once
+    preconditions:
+      - sh: "test '{{.CLUSTER_NAME}}' != '' "
+        msg: "Cluster name was not provided"
+    deps:
+      - task: "k3d:cluster:assure-started"
+    dir: ../925r
+    cmds:
+      - |
+        {{.COMPOSE}} build ninetofiver
+        && {{.COMPOSE}} --project-name tmp --file compose.yaml up -d ninetofiver
+        && IMAGE_ID="$({{.COMPOSE}} --project-name tmp --file compose.yaml images --quiet ninetofiver)"
+        && {{.DOCKER}} tag "${IMAGE_ID}" "k3d-{{.REGISTRY_HOST}}:{{.REGISTRY_PORT}}/ninetofiver:latest"
+        && {{.COMPOSE}} --project-name tmp --file compose.yaml rm --stop --force --volumes
+        && {{.DOCKER}} push "k3d-{{.REGISTRY_HOST}}:{{.REGISTRY_PORT}}/ninetofiver:latest"
+
+  compose:image:yayata:assure-built-and-pushed-to-k3d:
+    run: once
+    preconditions:
+      - sh: "test '{{.CLUSTER_NAME}}' != '' "
+        msg: "Cluster name was not provided"
+    deps:
+      - task: "k3d:cluster:assure-started"
+    dir: ../yayata
+    cmds:
+      - |
+        {{.COMPOSE}} build yayata
+        && {{.COMPOSE}} --project-name tmp --file compose.yaml up -d yayata
+        && IMAGE_ID="$({{.COMPOSE}} --project-name tmp --file compose.yaml images --quiet yayata)"
+        && {{.DOCKER}} tag "${IMAGE_ID}" "k3d-{{.REGISTRY_HOST}}:{{.REGISTRY_PORT}}/yayata:latest"
+        && {{.COMPOSE}} --project-name tmp --file compose.yaml rm --stop --force --volumes
+        && {{.DOCKER}} push "k3d-{{.REGISTRY_HOST}}:{{.REGISTRY_PORT}}/yayata:latest"
+
+  app:ninetofiver:v2:start:
+    run: once
+    deps:
+      - task: "k3d:registry:assure-created"
+      - task: "k3d:cluster:assure-started"
+    cmds:
+      - task: "kubectl:namespace:assure-created"
+      - task: "compose:image:ninetofiver:assure-built-and-pushed-to-k3d"
+      - |
+        {{.KUBECTL}} apply --namespace "{{.NAMESPACE_NAME}}" --filename "k3d/mysql.yaml"
+      - |
+        {{.KUBECTL}} wait --namespace "{{.NAMESPACE_NAME}}" pod --selector=app=mysql --for=condition=ready --timeout=300s
+      - |
+        {{.KUBECTL}} describe --namespace "{{.NAMESPACE_NAME}}" service --selector=app=mysql | grep -E "Endpoints:[[:space:]0-9\.]+:3306"
+      - |
+        {{.KUBECTL}} apply --namespace "{{.NAMESPACE_NAME}}" --filename "k3d/ninetofiver.yaml"
+      - |
+        {{.KUBECTL}} wait --namespace "{{.NAMESPACE_NAME}}" pod --selector=app=ninetofiver --for=condition=ready --timeout=300s
+      - |
+        {{.KUBECTL}} describe --namespace "{{.NAMESPACE_NAME}}" service --selector=app=ninetofiver | grep -E "Endpoints:[[:space:]0-9\.]+:8000"
+
+  app:ninetofiver:v2:stop:
+    run: once
+    deps:
+      - task: "k3d:registry:assure-created"
+      - task: "k3d:cluster:assure-started"
+    cmds:
+      - |
+        {{.KUBECTL}} delete --namespace "{{.NAMESPACE_NAME}}" --filename "k3d/ninetofiver.yaml" --ignore-not-found
+      - |
+        {{.KUBECTL}} delete --namespace "{{.NAMESPACE_NAME}}" --filename "k3d/mysql.yaml" --ignore-not-found
+
+  app:yayata:v2:start:
+    run: once
+    deps:
+      - task: "k3d:registry:assure-created"
+      - task: "k3d:cluster:assure-started"
+    cmds:
+      - task: "kubectl:namespace:assure-created"
+      - task: "compose:image:yayata:assure-built-and-pushed-to-k3d"
+      - |
+        {{.KUBECTL}} apply --namespace "{{.NAMESPACE_NAME}}" --filename "k3d/yayata.yaml"
+      - |
+        {{.KUBECTL}} wait --namespace "{{.NAMESPACE_NAME}}" pod --selector=app=yayata --for=condition=ready --timeout=300s
+      - |
+        {{.KUBECTL}} describe --namespace "{{.NAMESPACE_NAME}}" service --selector=app=yayata | grep -E "Endpoints:[[:space:]0-9\.]+:8080"
+
+  app:yayata:v2:stop:
+    run: once
+    deps:
+      - task: "k3d:registry:assure-created"
+      - task: "k3d:cluster:assure-started"
+    cmds:
+      - |
+        {{.KUBECTL}} delete --namespace "{{.NAMESPACE_NAME}}" --filename "k3d/yayata.yaml" --ignore-not-found
+
+  app:*:v2:logs:
+    vars:
+      APP: "{{index .MATCH 0}}"
+    cmds:
+      - |
+        {{.KUBECTL}} logs --namespace "{{.NAMESPACE_NAME}}" --selector=app={{.APP}} --all-containers=true --since-time="$({{.KUBECTL}} get pods --namespace "{{.NAMESPACE_NAME}}" --selector=app={{.APP}} --output=custom-columns='creationTimestamp:.metadata.creationTimestamp' --no-headers)" --follow
+
+  app:*:v2:sh:
+    vars:
+      APP: "{{index .MATCH 0}}"
+    cmds:
+      - task: "app:{{.APP}}:v2:exec"
+        vars: { SHELL: "sh" }
+
+  app:*:v2:bash:
+    vars:
+      APP: "{{index .MATCH 0}}"
+    cmds:
+      - task: "app:{{.APP}}:v2:exec"
+        vars: { SHELL: "bash" }
+
+  app:*:v2:exec:
+    vars:
+      APP: "{{index .MATCH 0}}"
+    requires:
+      vars: [SHELL]
+    cmds:
+      - |
+        {{.KUBECTL}} exec -it "$(kubectl get pod --selector=app={{.APP}} --no-headers --output=custom-columns="NAME:.metadata.name")" -- {{.SHELL}} {{.CLI_ARGS}}
+
+  app:v2:start:
+    cmds:
+      - task: "app:ninetofiver:v2:start"
+      - task: "app:yayata:v2:start"
+
+  app:v2:stop:
+    cmds:
+      - task: "app:yayata:v2:stop"
+      - task: "app:ninetofiver:v2:stop"
+
+  app:v2:clean:
+    cmds:
+      - task: "kubectl:namespace:assure-deleted"
+      - task: "k3d:cluster:assure-deleted"
+      - task: "k3d:registry:assure-deleted"
+
+  app:v2:debug:
+    deps:
+      - task: "k3d:registry:assure-created"
+      - task: "k3d:cluster:assure-started"
+    cmds:
+      # @see https://www.baeldung.com/ops/kubernetes-list-all-resources
+      - for i in $({{.KUBECTL}} api-resources --no-headers --namespaced --verbs=list -o name | tr "\n" " "); do
+          output=$({{.KUBECTL}} get ${i} --show-kind --ignore-not-found --namespace "{{.NAMESPACE_NAME}}");
+          if test -n "${output}"; then echo "{{.KUBECTL}} get ${i} --show-kind --ignore-not-found --namespace \"{{.NAMESPACE_NAME}}\""; echo "${output}"; echo " "; fi;
+        done
