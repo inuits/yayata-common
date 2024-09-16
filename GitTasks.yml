@@ -5,7 +5,7 @@ tasks:
     requires:
       vars: [ URL, DIRECTORY, BRANCH ]
     cmds:
-      - git clone --branch '{{.BRANCH}}' '{{.URL}}' '{{.DIRECTORY}}'
+      - git clone --branch '{{.BRANCH}}' --single-branch '{{.URL}}' '{{.DIRECTORY}}'
     generates:
       - '{{.DIRECTORY}}'
     status:
