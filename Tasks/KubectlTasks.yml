@@ -1,0 +1,65 @@
+version: '3.38'
+
+vars:
+
+  KUBECTL: '{{.KUBECTL | default "kubectl"}}'
+  KUBERNETES_NAMESPACE_NAME: '{{.KUBERNETES_NAMESPACE_NAME | default "default"}}'
+
+tasks:
+
+  namespace:create:
+    run: once
+    requires:
+      vars: [ KUBECTL, KUBERNETES_NAMESPACE_NAME ]
+    preconditions:
+      - sh: "test '{{.KUBECTL}}' != '' "
+        msg: "KUBECTL was not provided"
+      - sh: "test '{{.KUBERNETES_NAMESPACE_NAME}}' != '' "
+        msg: "KUBERNETES_NAMESPACE_NAME was not provided"
+    cmds:
+      - |
+        {{.KUBECTL}} create namespace "{{.KUBERNETES_NAMESPACE_NAME}}"
+
+  namespace:assure-created:
+    run: once
+    requires:
+      vars: [ KUBECTL, KUBERNETES_NAMESPACE_NAME ]
+    preconditions:
+      - sh: "test '{{.KUBECTL}}' != '' "
+        msg: "KUBECTL was not provided"
+      - sh: "test '{{.KUBERNETES_NAMESPACE_NAME}}' != '' "
+        msg: "KUBERNETES_NAMESPACE_NAME was not provided"
+    status:
+      - |
+        {{.KUBECTL}} get namespace "{{.KUBERNETES_NAMESPACE_NAME}}" 2>/dev/null | grep -q "{{.KUBERNETES_NAMESPACE_NAME}}"
+    cmds:
+      - task: "namespace:create"
+
+  namespace:delete:
+    run: once
+    requires:
+      vars: [ KUBECTL, KUBERNETES_NAMESPACE_NAME ]
+    preconditions:
+      - sh: "test '{{.KUBECTL}}' != '' "
+        msg: "KUBECTL was not provided"
+      - sh: "test '{{.KUBERNETES_NAMESPACE_NAME}}' != '' "
+        msg: "KUBERNETES_NAMESPACE_NAME was not provided"
+    cmds:
+      - if test "{{.KUBERNETES_NAMESPACE_NAME}}" != "default"; then
+          {{.KUBECTL}} delete namespace "{{.KUBERNETES_NAMESPACE_NAME}}";
+        fi
+
+  namespace:assure-deleted:
+    run: once
+    requires:
+      vars: [ KUBECTL, KUBERNETES_NAMESPACE_NAME ]
+    preconditions:
+      - sh: "test '{{.KUBECTL}}' != '' "
+        msg: "KUBECTL was not provided"
+      - sh: "test '{{.KUBERNETES_NAMESPACE_NAME}}' != '' "
+        msg: "KUBERNETES_NAMESPACE_NAME was not provided"
+    status:
+      - |
+        {{.KUBECTL}} get namespace "{{.KUBERNETES_NAMESPACE_NAME}}" 2>/dev/null | ( ! grep -q "{{.KUBERNETES_NAMESPACE_NAME}}" )
+    cmds:
+      - task: "namespace:delete"

@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: ninetofiver
-          image: k3d-registry.localhost:5050/ninetofiver:latest
+          image: k3d-registry.localhost:5000/ninetofiver:latest
           args:
             - bash
             - -c

@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: yayata
-          image: k3d-registry.localhost:5050/yayata:latest
+          image: k3d-registry.localhost:5000/yayata:latest
           args:
             - sh
             - -c
