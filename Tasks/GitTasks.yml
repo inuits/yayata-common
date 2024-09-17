@@ -3,7 +3,6 @@ version: '3.38'
 tasks:
 
   clone:
-    run: once
     requires:
       vars: [ URL, DIRECTORY, BRANCH ]
     preconditions:
@@ -21,7 +20,6 @@ tasks:
       - '{{.DIRECTORY}}'
 
   pull:
-    run: once
     requires:
       vars: [ URL, DIRECTORY, BRANCH ]
     preconditions:
@@ -38,7 +36,6 @@ tasks:
       - cd '{{.DIRECTORY}}' && git pull '{{.URL}}' '{{.BRANCH}}'
 
   remove:
-    run: once
     requires:
       vars: [ DIRECTORY ]
     preconditions:
