@@ -69,6 +69,7 @@ spec:
           livenessProbe:
             exec:
               # @see https://github.com/kubernetes/kubernetes/issues/40846#issuecomment-415014405
+              # Sidenote: mysqladmin ping does not need a user and password to succeed
               command: ["bash", "-c", "MYSQL_PWD=${MYSQL_PASSWORD}", "mysqladmin", "--host", "127.0.0.1", "--user", "${MYSQL_USER}", "ping"]
             initialDelaySeconds: 30
             periodSeconds: 10
@@ -76,7 +77,7 @@ spec:
           readinessProbe:
             exec:
               # @see https://github.com/kubernetes/kubernetes/issues/40846#issuecomment-415014405
-              # Check we can execute queries over TCP (skip-networking is off).
+              # Check if we can execute actual queries
               command: ["bash", "-c", "MYSQL_PWD=${MYSQL_PASSWORD}", "mysql", "--host", "127.0.0.1", "--user", "${MYSQL_USER}", "--execute", "SELECT 1"]
             initialDelaySeconds: 5
             periodSeconds: 2
