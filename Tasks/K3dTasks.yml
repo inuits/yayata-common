@@ -84,7 +84,11 @@ tasks:
       - task: "registry:assure-created"
     cmds:
       - |
-        {{.K3D}} cluster create "{{.K3D_CLUSTER_NAME}}"{{if .K3D_CLUSTER_SERVERS}} --servers "{{.K3D_CLUSTER_SERVERS}}"{{end}}{{if .K3D_CLUSTER_AGENTS}} --agents "{{.K3D_CLUSTER_AGENTS}}"{{end}} --registry-use "{{.K3D_RESOURCE_PREFIX}}{{.K3D_REGISTRY_HOST}}:{{.K3D_REGISTRY_PORT}}"{{if .K3D_CLUSTER_PORT_MAP}} --port "{{.K3D_CLUSTER_PORT_MAP}}"{{end}}
+        {{.K3D}} cluster create "{{.K3D_CLUSTER_NAME}}" \
+          {{if .K3D_CLUSTER_SERVERS}} --servers "{{.K3D_CLUSTER_SERVERS}}"{{end}} \
+          {{if .K3D_CLUSTER_AGENTS}} --agents "{{.K3D_CLUSTER_AGENTS}}"{{end}} \
+          --registry-use "{{.K3D_RESOURCE_PREFIX}}{{.K3D_REGISTRY_HOST}}:{{.K3D_REGISTRY_PORT}}" \
+          {{if .K3D_CLUSTER_PORT_MAP}}{{range .K3D_CLUSTER_PORT_MAP | splitList ","}} --port "{{.}}"{{end}}{{end}}
 
   cluster:assure-created:
     run: once
