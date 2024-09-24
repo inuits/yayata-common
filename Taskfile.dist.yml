@@ -240,10 +240,10 @@ tasks:
       - sh: "test '{{.KUBERNETES_NAMESPACE_NAME}}' != '' "
         msg: "KUBERNETES_NAMESPACE_NAME was not provided"
     vars:
-      COMMAND: "{{index .MATCH 0}}"
+      APP: "{{index .MATCH 0}}"
     cmds:
       - |
-        {{.KUBECTL}} exec --namespace "{{.KUBERNETES_NAMESPACE_NAME}}" --interactive --tty "$(kubectl get pod --selector=app={{.APP}} --no-headers --output=custom-columns="NAME:.metadata.name")" -- {{.COMMAND}} {{.CLI_ARGS}}
+        {{.KUBECTL}} exec --namespace "{{.KUBERNETES_NAMESPACE_NAME}}" --stdin --tty "$(kubectl get --namespace "{{.KUBERNETES_NAMESPACE_NAME}}" pod --selector=app={{.APP}} --no-headers --output=custom-columns="NAME:.metadata.name")" -- {{.COMMAND}} {{.CLI_ARGS}}
 
   v2:start:
     cmds:
