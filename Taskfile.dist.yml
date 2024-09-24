@@ -18,7 +18,7 @@ includes:
 tasks:
   default:
     cmds:
-      - "'{{.TASK_EXE}}' --list"
+      - "'{{.TASK_EXE}}' --list-all"
 
   clone:
     deps:
