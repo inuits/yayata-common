@@ -34,6 +34,7 @@ spec:
       containers:
         - name: ninetofiver
           image: k3d-registry.localhost:5000/ninetofiver:latest
+          imagePullPolicy: Always
           args:
             - bash
             - -c
