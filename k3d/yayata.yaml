@@ -1,17 +1,3 @@
-#---
-#apiVersion: v1
-#kind: PersistentVolumeClaim
-#metadata:
-#  name: yayata
-#  labels:
-#    app: yayata
-#spec:
-#  accessModes:
-#    - ReadWriteOnce
-#  storageClassName: local-path
-#  resources:
-#    requests:
-#      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -44,20 +30,13 @@ spec:
                 npm run dev -- --host 0.0.0.0
           env:
             - name: API_APPLICATION_BASE_URL
-              value: ninetofiver.localhost
+              value: //ninetofiver.localhost
             - name: API_APPLICATION_CLIENT_ID
               value: yayata
-#          volumeMounts:
-#            - mountPath: /code
-#              name: yayata-files
           ports:
             - containerPort: 8080
               protocol: TCP
       restartPolicy: Always
-#      volumes:
-#        - name: yayata-files
-#          persistentVolumeClaim:
-#            claimName: yayata
 ---
 apiVersion: v1
 kind: Service
