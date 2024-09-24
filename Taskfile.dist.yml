@@ -10,13 +10,10 @@ dotenv: ['.env.local', '.env', '.env.dist'] # first file takes precedence
 includes:
   git:
     taskfile: ./Tasks/GitTasks.yml
-    internal: true
   k3d:
     taskfile: ./Tasks/K3dTasks.yml
-    internal: true
   kubectl:
     taskfile: ./Tasks/KubectlTasks.yml
-    internal: true
 
 tasks:
   default:
