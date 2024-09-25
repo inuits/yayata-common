@@ -1,0 +1,163 @@
+version: '3.38'
+
+vars:
+
+  K3D: '{{.K3D | default "k3d"}}'
+  K3D_RESOURCE_PREFIX: '{{.K3D_RESOURCE_PREFIX | default "k3d-" }}'
+  K3D_REGISTRY_HOST: '{{.K3D_REGISTRY_HOST | default "registry.localhost" }}'
+  K3D_REGISTRY_PORT: '{{.K3D_REGISTRY_PORT | default "5000" }}'
+
+tasks:
+
+  registry:create:
+    run: once
+    requires:
+      vars: [ K3D, K3D_REGISTRY_HOST, K3D_REGISTRY_PORT ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_REGISTRY_HOST}}' != '' "
+        msg: "K3D_REGISTRY_HOST was not provided"
+      - sh: "test '{{.K3D_REGISTRY_PORT}}' != '' "
+        msg: "K3D_REGISTRY_PORT was not provided"
+    cmds:
+      - |
+        {{.K3D}} registry create "{{.K3D_REGISTRY_HOST}}" --port "{{.K3D_REGISTRY_PORT}}"
+
+  registry:assure-created:
+    run: once
+    requires:
+      vars: [ K3D, K3D_REGISTRY_HOST ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_REGISTRY_HOST}}' != '' "
+        msg: "K3D_REGISTRY_HOST was not provided"
+    status:
+      - |
+        {{.K3D}} registry list --no-headers "{{.K3D_REGISTRY_HOST}}" 2>/dev/null | grep -q "{{.K3D_REGISTRY_HOST}}"
+    cmds:
+      - task: "registry:create"
+
+  registry:delete:
+    run: once
+    requires:
+      vars: [ K3D, K3D_REGISTRY_HOST ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_REGISTRY_HOST}}' != '' "
+        msg: "K3D_REGISTRY_HOST was not provided"
+    cmds:
+      - |
+        {{.K3D}} registry delete "{{.K3D_RESOURCE_PREFIX}}{{.K3D_REGISTRY_HOST}}"
+
+  registry:assure-deleted:
+    run: once
+    requires:
+      vars: [ K3D, K3D_REGISTRY_HOST ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_REGISTRY_HOST}}' != '' "
+        msg: "K3D_REGISTRY_HOST was not provided"
+    status:
+      - |
+        {{.K3D}} registry list --no-headers "{{.K3D_REGISTRY_HOST}}" 2>/dev/null | ( ! grep -q "{{.K3D_REGISTRY_HOST}}" )
+    cmds:
+      - task: "registry:delete"
+
+  cluster:create:
+    run: once
+    requires:
+      vars: [ K3D, K3D_REGISTRY_HOST ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_REGISTRY_HOST}}' != '' "
+        msg: "K3D_REGISTRY_HOST was not provided"
+      - sh: "test '{{.K3D_REGISTRY_PORT}}' != '' "
+        msg: "K3D_REGISTRY_PORT was not provided"
+      - sh: "test '{{.K3D_CLUSTER_NAME}}' != '' "
+        msg: "K3D_CLUSTER_NAME was not provided"
+    deps:
+      - task: "registry:assure-created"
+    cmds:
+      - |
+        {{.K3D}} cluster create "{{.K3D_CLUSTER_NAME}}" \
+          {{if .K3D_CLUSTER_SERVERS}} --servers "{{.K3D_CLUSTER_SERVERS}}"{{end}} \
+          {{if .K3D_CLUSTER_AGENTS}} --agents "{{.K3D_CLUSTER_AGENTS}}"{{end}} \
+          --registry-use "{{.K3D_RESOURCE_PREFIX}}{{.K3D_REGISTRY_HOST}}:{{.K3D_REGISTRY_PORT}}" \
+          {{if .K3D_CLUSTER_PORT_MAP}}{{range .K3D_CLUSTER_PORT_MAP | splitList ","}} --port "{{.}}"{{end}}{{end}}
+
+  cluster:assure-created:
+    run: once
+    requires:
+      vars: [ K3D, K3D_CLUSTER_NAME ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_CLUSTER_NAME}}' != '' "
+        msg: "K3D_CLUSTER_NAME was not provided"
+    status:
+      - |
+        {{.K3D}} cluster list --no-headers "{{.K3D_CLUSTER_NAME}}" 2>/dev/null | grep -q "{{.K3D_CLUSTER_NAME}}"
+    cmds:
+      - task: "cluster:create"
+
+  cluster:assure-started:
+    run: once
+    requires:
+      vars: [ K3D, K3D_CLUSTER_NAME ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_CLUSTER_NAME}}' != '' "
+        msg: "K3D_CLUSTER_NAME was not provided"
+    cmds:
+      - task: "cluster:assure-created"
+      - |
+        {{.K3D}} cluster start "{{.K3D_CLUSTER_NAME}}"
+
+  cluster:delete:
+    run: once
+    requires:
+      vars: [ K3D, K3D_CLUSTER_NAME ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_CLUSTER_NAME}}' != '' "
+        msg: "K3D_CLUSTER_NAME was not provided"
+    cmds:
+      - |
+        {{.K3D}} cluster delete "{{.K3D_CLUSTER_NAME}}"
+
+  cluster:assure-deleted:
+    run: once
+    requires:
+      vars: [ K3D, K3D_CLUSTER_NAME ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_CLUSTER_NAME}}' != '' "
+        msg: "K3D_CLUSTER_NAME was not provided"
+    status:
+      - |
+        {{.K3D}} cluster list --no-headers "{{.K3D_CLUSTER_NAME}}" 2>/dev/null | ( ! grep -q "{{.K3D_CLUSTER_NAME}}" )
+    cmds:
+      - task: "cluster:delete"
+
+  cluster:switch-context:
+    run: once
+    requires:
+      vars: [ K3D, K3D_CLUSTER_NAME ]
+    preconditions:
+      - sh: "test '{{.K3D}}' != '' "
+        msg: "K3D was not provided"
+      - sh: "test '{{.K3D_CLUSTER_NAME}}' != '' "
+        msg: "K3D_CLUSTER_NAME was not provided"
+    deps:
+      - task: "cluster:assure-started"
+    cmds:
+      - |
+        {{.K3D}} kubeconfig merge "{{.K3D_CLUSTER_NAME}}" --kubeconfig-switch-context

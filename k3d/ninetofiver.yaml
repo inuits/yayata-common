@@ -1,0 +1,102 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ninetofiver
+  labels:
+    app: ninetofiver
+spec:
+  selector:
+    matchLabels:
+      app: ninetofiver
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: ninetofiver
+    spec:
+      containers:
+        - name: ninetofiver
+          image: k3d-registry.localhost:5000/ninetofiver:latest
+          imagePullPolicy: Always
+          args:
+            - bash
+            - -c
+            - |2
+                python manage.py migrate
+                echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('${SUPERUSER_USERNAME?}', '${SUPERUSER_EMAIL?}', '${SUPERUSER_PASSWORD?}')" | python manage.py shell || true
+                echo "from oauth2_provider.models import Application; from django.contrib.auth import get_user_model; User = get_user_model(); client = Application.objects.create(user=User.objects.filter(is_staff=True)[0], name='${API_APPLICATION_NAME?}', client_id='${API_APPLICATION_CLIENT_ID?}', client_secret='${API_APPLICATION_CLIENT_SECRET?}', authorization_grant_type=Application.GRANT_PASSWORD)" | python manage.py shell || true
+                python manage.py runserver 0.0.0.0:8000
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: ninetofiver.settings
+            - name: DJANGO_CONFIGURATION
+              value: Dev
+            - name: CFG_FILE_PATH
+              value: /etc/925r/config.yml
+            - name: MYSQL_HOST
+              value: mysql
+            - name: MYSQL_DB
+              value: yayata
+            - name: MYSQL_USER
+              value: yayata
+            - name: MYSQL_PASSWORD
+              value: yayata
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: SUPERUSER_USERNAME
+              value: admin
+            - name: SUPERUSER_EMAIL
+              value: test@inuits.eu
+            - name: SUPERUSER_PASSWORD
+              value: admin
+            - name: API_APPLICATION_NAME
+              value: yayata
+            - name: API_APPLICATION_CLIENT_ID
+              value: yayata
+            - name: API_APPLICATION_CLIENT_SECRET
+              value: yayata
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ninetofiver
+  labels:
+    app: ninetofiver
+spec:
+  selector:
+    app: ninetofiver
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ninetofiver
+  labels:
+    app: ninetofiver
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+    - host: ninetofiver.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ninetofiver
+                port:
+                  number: 8000
