@@ -48,7 +48,16 @@ Pull the latest changes from the 925r and Yayata repositories:
 task pull
 ```
 
+## Configuration
+
+Make sure to set up the .env files.
+
+Change the COMPOSE_FILE variable, to make sure either the ports are fixed,
+or use Traefik to connect to the service.
+
 ## Usage
+
+### Compose
 
 Start both 925r and Yayata:
 
@@ -59,6 +68,22 @@ task start
 Open your browser on [http://localhost:8000](http://localhost:8000) for the 925r application.
 
 Open your browser on [http://localhost:8080](http://localhost:8080) for the Yayata application.
+
+The credentials for Yayata can be found in the 925r .env file.
+
+For more details, check the 925r and Yayata README.md files.
+
+### Kubernetes
+
+Start both 925r and Yayata:
+
+```
+task v2:start
+```
+
+Open your browser on [http://ninetofiver.localhost](http://ninetofiver.localhost) for the 925r application.
+
+Open your browser on [http://yayata.localhost](http://yayata.localhost) for the Yayata application.
 
 The credentials for Yayata can be found in the 925r .env file.
 
