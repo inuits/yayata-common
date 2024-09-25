@@ -89,7 +89,7 @@ tasks:
     cmds:
       - |
         cd ../925r && {{.COMPOSE}} --project-name tmp --file compose.yaml down --rmi all
-        cd ../925r && {{.COMPOSE}} build ninetofiver
+        cd ../925r && {{.COMPOSE}} --project-name tmp build ninetofiver
         cd ../925r && {{.COMPOSE}} --project-name tmp --file compose.yaml up -d ninetofiver
         cd ../925r && IMAGE_ID="$({{.COMPOSE}} --project-name tmp --file compose.yaml images --quiet ninetofiver)"
         cd ../925r && {{.DOCKER}} image tag "${IMAGE_ID}" "{{.K3D_RESOURCE_PREFIX}}{{.K3D_REGISTRY_HOST}}:{{.K3D_REGISTRY_PORT}}/ninetofiver:latest"
@@ -118,7 +118,7 @@ tasks:
     cmds:
       - |
         cd ../yayata && {{.COMPOSE}} --project-name tmp --file compose.yaml down --rmi all
-        cd ../yayata && {{.COMPOSE}} build yayata
+        cd ../yayata && {{.COMPOSE}} --project-name tmp build yayata
         cd ../yayata && {{.COMPOSE}} --project-name tmp --file compose.yaml up -d yayata
         cd ../yayata && IMAGE_ID="$({{.COMPOSE}} --project-name tmp --file compose.yaml images --quiet yayata)"
         cd ../yayata && {{.DOCKER}} image tag "${IMAGE_ID}" "{{.K3D_RESOURCE_PREFIX}}{{.K3D_REGISTRY_HOST}}:{{.K3D_REGISTRY_PORT}}/yayata:latest"
